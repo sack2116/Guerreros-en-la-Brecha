@@ -92,6 +92,35 @@ const helpButton = () => (COORDINATOR_WHATSAPP
   ? `<a class="btn ghost" href="${waLink(`Hola, necesito ayuda con ${SITE_NAME}.`, COORDINATOR_WHATSAPP)}" target="_blank" rel="noopener">📞 ¿Necesitas ayuda? Escríbenos</a>`
   : '');
 const peopleText = (n) => (n === 0 ? 'Libre' : n === 1 ? '1 persona' : `${n} personas`);
+const FULL_TEXT = 'Ya hay suficientes Guerreros en esta hora';
+const roomText = (n) => {
+  const left = S.MAX_PER_HOUR - n;
+  return left === 1 ? 'Queda 1 lugar' : `Quedan ${left} lugares`;
+};
+const daysText = (days) => `${days.length === 1 ? 'el día' : 'los días'} ${S.listLabel(days.map(String))}`;
+// First day of a month that can still be signed up for (today, in the current month).
+function firstOpenDay(month) {
+  const t = today();
+  if (month === S.keyOf(t)) return t.getDate();
+  return month < S.keyOf(t) ? S.daysInMonth(month) + 1 : 1;
+}
+// Is there any day left this month with room at this hour?
+function hourHasRoom(list, month, h) {
+  const from = firstOpenDay(month);
+  return S.fullDays(list, month, h, from).length < S.daysInMonth(month) - from + 1;
+}
+// Fit several new sign-ups one after another, so they also count against each other.
+function fitAll(items, list) {
+  const taken = [...list];
+  const out = [];
+  for (const item of items) {
+    const { c } = S.fitToRoom(item, taken);
+    if (!S.isComplete(c)) continue;
+    out.push(c);
+    taken.push({ ...c, cancelled: false });
+  }
+  return out;
+}
 const chips = (names) => names.map(n => `<span class="chip">${esc(n)}</span>`).join('');
 
 // ─────────────── inicio ───────────────
@@ -122,7 +151,7 @@ function viewHome() {
       ${S.MATUTINO.map(h => `
         <div class="slot ${hours[h].length ? 'filled' : 'empty'} matutino">
           <div class="when">${S.hourLabel(h)}</div>
-          <div class="who">${hours[h].length ? chips(hours[h]) : '<span class="free">Nadie todavía</span>'}</div>
+          <div class="who">${hours[h].length ? chips(hours[h]) : '<span class="free">Libre · ¡te esperamos!</span>'}</div>
         </div>`).join('')}
       <p class="muted">${hours.filter(n => n.length).length} de 24 horas cubiertas hoy.</p>
       <button class="btn ghost" data-act="go" data-to="#/calendario">📅 Ver el calendario completo</button>
@@ -140,7 +169,7 @@ function repeatCandidates() {
   const mine = monthList(w.current).filter(isMine);
   const next = monthList(w.next);
   if (!loaded(w.next)) return [];
-  return mine.map(c => S.copyToMonth(c, w.next)).filter(c => S.isComplete(c) && !next.some(n => S.sameCommitment(n, c)));
+  return fitAll(mine.map(c => S.copyToMonth(c, w.next)).filter(c => !next.some(n => S.sameCommitment(n, c))), next);
 }
 
 // ─────────────── apuntarme (step by step) ───────────────
@@ -193,7 +222,12 @@ function wizMonth() {
 }
 
 function hourButton(h, month, selected, act) {
-  const n = S.namesForHour(monthList(month), month, h).length;
+  const list = monthList(month);
+  const n = S.namesForHour(list, month, h).length;
+  if (S.isLimited(h) && !hourHasRoom(list, month, h)) {
+    return `<button class="btn hour full" data-act="hour-full" data-h="${h}">
+      <span class="when">${S.hourLabel(h)}</span><span class="count">${FULL_TEXT}</span></button>`;
+  }
   return `<button class="btn hour ${selected === h ? 'selected' : ''} ${n ? '' : 'nobody'}" data-act="${act}" data-h="${h}">
     <span class="when">${S.hourLabel(h)}</span><span class="count">${peopleText(n)}</span></button>`;
 }
@@ -201,10 +235,10 @@ function hourButton(h, month, selected, act) {
 function wizHour() {
   return `
     <h1>¿A qué hora quieres orar?</h1>
-    <p class="muted">Cada hora dura 60 minutos. Pueden orar varias personas a la misma hora.</p>
+    <p class="muted">Cada hora dura 60 minutos. En el Matutino caben todos; en las demás horas, hasta ${S.MAX_PER_HOUR} personas.</p>
     <section class="card matutino-card">
       <h2>🌅 Matutino</h2>
-      <p>Nuestra hora especial: de 5 a 7 de la mañana.</p>
+      <p>Nuestra hora especial: de 5 a 7 de la mañana. ¡Siempre hay lugar!</p>
       ${S.MATUTINO.map(h => hourButton(h, wiz.month, wiz.hour, 'wiz-hour')).join('')}
     </section>
     <h2 class="other-title">Otras horas</h2>
@@ -214,8 +248,9 @@ function wizHour() {
 }
 
 // The "which days" chooser, shared by the sign-up steps and the admin form.
-function daysPicker(state, target, { allowPast = false } = {}) {
+function daysPicker(state, target, { allowPast = false, list = monthList(state.month) } = {}) {
   const t = today();
+  const full = S.fullDays(list, state.month, state.hour);
   const isCurrent = state.month === S.keyOf(t);
   const options = [
     ['daily', '📆 Todos los días del mes'],
@@ -233,18 +268,29 @@ function daysPicker(state, target, { allowPast = false } = {}) {
     for (let i = 0; i < lead; i++) cells.push('<span></span>');
     for (let d = 1; d <= S.daysInMonth(state.month); d++) {
       const past = !allowPast && isCurrent && d < t.getDate();
-      cells.push(`<button class="date ${state.dates.includes(d) ? 'selected' : ''}" data-act="date" data-target="${target}" data-d="${d}" ${past ? 'disabled' : ''}>${d}</button>`);
+      const isFull = full.includes(d);
+      cells.push(`<button class="date ${state.dates.includes(d) ? 'selected' : ''} ${isFull ? 'full' : ''}" data-act="date" data-target="${target}" data-d="${d}" ${past || isFull ? 'disabled' : ''} ${isFull ? `title="${FULL_TEXT}"` : ''}>${d}</button>`);
     }
-    extra = `<p class="muted">Toca las fechas que quieres:</p>
+    extra = `<p class="muted">Toca las fechas que quieres${full.length ? ' (las grises ya están llenas)' : ''}:</p>
       <div class="mini-cal"><b>L</b><b>M</b><b>M</b><b>J</b><b>V</b><b>S</b><b>D</b>${cells.join('')}</div>`;
+  }
+  let note = '';
+  if (state.kind && state.hour !== null) {
+    const fit = S.fitToRoom(S.copyToMonth(state, state.month), list);
+    const picked = state.kind !== 'weekly' || state.weekdays.length;
+    if (picked && !S.isComplete(fit.c)) note = `<p class="note full-note">⚠️ ${FULL_TEXT} esos días. Escoge otros días u otra hora.</p>`;
+    else if (fit.skipped.length && state.kind !== 'dates') note = `<p class="note">ℹ️ ${FULL_TEXT} ${daysText(fit.skipped)}. Te apuntamos en los demás días.</p>`;
   }
   return `${options.map(([k, label]) => `
     <button class="btn option ${state.kind === k ? 'selected' : ''}" data-act="kind" data-target="${target}" data-k="${k}">${label}</button>
-    ${state.kind === k ? extra : ''}`).join('')}`;
+    ${state.kind === k ? extra : ''}`).join('')}${note}`;
 }
 
+// The sign-up as it will be saved: this month's days, minus the ones already full.
+const wizFitted = () => S.fitToRoom({ ...S.copyToMonth(wiz, wiz.month), name: wiz.name }, monthList(wiz.month)).c;
+
 function wizDays() {
-  const ready = wiz.kind && S.isComplete(wiz);
+  const ready = wiz.kind && S.isComplete(wizFitted());
   return `
     <h1>¿Qué días?</h1>
     <p class="muted">${S.monthLabel(wiz.month)} · ${S.hourLabel(wiz.hour)}</p>
@@ -260,7 +306,7 @@ function wizConfirm() {
     <section class="card summary">
       <p class="who-big">🙏 ${esc(wiz.name)}</p>
       <p>🕔 ${S.hourLabel(wiz.hour)}</p>
-      <p>📅 ${S.patternLabel(wiz)}</p>
+      <p>📅 ${S.patternLabel(wizFitted())}</p>
       <p>🗓️ ${S.monthLabel(wiz.month)}</p>
       ${others.length ? `<p class="together">🤝 A esta hora también oran: ${chips(others)}</p>` : '<p class="together">⭐ ¡Serás la primera persona en esta hora!</p>'}
     </section>
@@ -297,18 +343,26 @@ function viewCalendar(q) {
   for (let i = 0; i < lead; i++) cells.push('<span></span>');
   for (let d = 1; d <= days; d++) {
     const cov = S.dayCoverage(list, month, d);
-    const level = cov.covered === 0 ? 'l0' : cov.covered < 12 ? 'l1' : cov.covered < 24 ? 'l2' : 'l3';
     const isToday = month === S.keyOf(t) && d === t.getDate();
-    cells.push(`<button class="cal-day ${level} ${d === day ? 'selected' : ''} ${isToday ? 'today' : ''}" data-act="go" data-to="#/calendario?m=${month}&d=${d}" aria-label="${S.dayLabel(month, d)}, ${cov.covered} de 24 horas">
+    cells.push(`<button class="cal-day ${cov.full ? 'full' : 'open'} ${d === day ? 'selected' : ''} ${isToday ? 'today' : ''}" data-act="go" data-to="#/calendario?m=${month}&d=${d}" aria-label="${S.dayLabel(month, d)}, ${cov.full ? 'lleno' : 'hay lugar'}">
       <span class="num">${d}</span><span class="sun">${cov.matutino ? '🌅' : ''}</span></button>`);
   }
   const hours = S.dayHours(list, month, day);
   const covered = hours.filter(n => n.length).length;
-  const row = (h) => `
-    <button class="slot ${hours[h].length ? 'filled' : 'empty'} ${S.MATUTINO.includes(h) ? 'matutino' : ''}" data-act="slot" data-m="${month}" data-d="${day}" data-h="${h}">
+  const row = (h) => {
+    const n = hours[h].length;
+    const full = S.isLimited(h) && n >= S.MAX_PER_HOUR;
+    let hint = '<span class="free">Libre · toca para apuntarte</span>';
+    if (full) hint = `<span class="room">${FULL_TEXT}</span>`;
+    else if (n && S.isLimited(h)) hint = `<span class="room open">${roomText(n)} · toca para unirte</span>`;
+    else if (n) hint = '<span class="room open">Siempre hay lugar · toca para unirte</span>';
+    return `
+    <button class="slot ${full ? 'full' : n ? 'filled' : 'empty'} ${S.MATUTINO.includes(h) ? 'matutino' : ''}" data-act="${full ? 'hour-full' : 'slot'}" data-m="${month}" data-d="${day}" data-h="${h}">
       <div class="when">${S.hourLabel(h)}</div>
-      <div class="who">${hours[h].length ? chips(hours[h]) : '<span class="free">Libre · toca para apuntarte</span>'}</div>
+      ${n ? `<div class="who">${chips(hours[h])}</div>` : ''}
+      <div>${hint}</div>
     </button>`;
+  };
   const prev = day > 1 ? `#/calendario?m=${month}&d=${day - 1}` : `#/calendario?m=${S.addMonths(month, -1)}&d=${S.daysInMonth(S.addMonths(month, -1))}`;
   const next = day < days ? `#/calendario?m=${month}&d=${day + 1}` : `#/calendario?m=${S.addMonths(month, 1)}&d=1`;
   return `
@@ -318,7 +372,7 @@ function viewCalendar(q) {
       <button class="btn icon" data-act="go" data-to="#/calendario?m=${S.addMonths(month, 1)}" aria-label="Mes siguiente">▶</button>
     </div>
     <div class="cal"><b>L</b><b>M</b><b>M</b><b>J</b><b>V</b><b>S</b><b>D</b>${cells.join('')}</div>
-    <p class="legend"><span class="dot l0"></span>Nadie <span class="dot l1"></span>Pocas horas <span class="dot l2"></span>Casi lleno <span class="dot l3"></span>24 horas · 🌅 Matutino cubierto</p>
+    <p class="legend"><span class="dot open"></span>Hay lugar <span class="dot full"></span>Lleno · 🌅 Matutino cubierto</p>
     <section class="day-detail">
       <div class="day-head">
         <button class="btn icon" data-act="go" data-to="${prev}" aria-label="Día anterior">◀</button>
@@ -412,7 +466,7 @@ function viewAdmin(q) {
   const list = monthList(month);
   const prev = S.addMonths(month, -1);
   const prevList = monthList(prev);
-  const toCopy = prevList.map(c => S.copyToMonth(c, month)).filter(c => S.isComplete(c) && !list.some(x => S.sameCommitment(x, c)));
+  const toCopy = fitAll(prevList.map(c => S.copyToMonth(c, month)).filter(c => !list.some(x => S.sameCommitment(x, c))), list);
   const t = today();
   const msgDay = Number(q.get('d')) || (month === S.keyOf(t) ? Math.min(t.getDate() + 1, S.daysInMonth(month)) : 1);
   const daily = S.dailyMessage(list, month, msgDay, msgOpts());
@@ -438,7 +492,7 @@ function viewAdmin(q) {
         <h2>${af.editId ? '✏️ Cambiar inscripción' : '➕ Apuntar a alguien'}</h2>
         <label>Nombre completo<input class="big-input" data-bind="af.name" value="${esc(af.name)}" maxlength="60"></label>
         <label>Hora<select class="big-input" data-bind="af.hour">${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${af.hour === h ? 'selected' : ''}>${S.MATUTINO.includes(h) ? '🌅 ' : ''}${S.hourLabel(h)}</option>`).join('')}</select></label>
-        ${daysPicker(af, 'af', { allowPast: true })}
+        ${daysPicker(af, 'af', { allowPast: true, list: list.filter(c => c.id !== af.editId) })}
         <div class="row">
           <button class="btn primary" data-act="af-save">${af.editId ? 'Guardar cambios' : 'Apuntar'}</button>
           ${af.editId ? '<button class="btn ghost" data-act="af-cancel">Cancelar</button>' : ''}
@@ -510,6 +564,7 @@ const actions = {
     wiz.step = 'hour';
     render();
   },
+  'hour-full': () => toast(`${FULL_TEXT}. ¡Escoge otra hora, por favor! 🙏`),
   'wiz-hour': (d) => { wiz.hour = Number(d.h); wiz.step = 'days'; render(); },
   kind: (d) => { const s = stateOf(d.target); s.kind = d.k; render(); },
   wd: (d) => { const s = stateOf(d.target); s.weekdays = toggle(s.weekdays, Number(d.d)); render(); },
@@ -517,8 +572,8 @@ const actions = {
   'wiz-days': () => { if (S.isComplete(wiz)) { wiz.step = 'confirm'; render(); } },
   'wiz-save': async (_, el) => {
     el.disabled = true;
-    const c = S.copyToMonth(wiz, wiz.month);
-    c.name = wiz.name;
+    const c = wizFitted();
+    if (!S.isComplete(c)) { el.disabled = false; toast(`${FULL_TEXT}. Escoge otra hora u otros días.`); wiz.step = 'days'; render(); return; }
     try {
       wiz.already = monthList(wiz.month).some(x => S.sameCommitment(x, c));
       if (!wiz.already) await store.add(c);
@@ -568,9 +623,11 @@ const actions = {
     go('#/');
   },
   'af-save': async (_, el) => {
-    const c = { ...S.copyToMonth(af, af.month), name: af.name.trim() };
+    const others = monthList(af.month).filter(x => x.id !== af.editId);
+    const { c, skipped } = S.fitToRoom({ ...S.copyToMonth(af, af.month), name: af.name.trim() }, others);
     if (c.name.length < 2) { toast('Escribe el nombre.'); return; }
-    if (!S.isComplete(c)) { toast('Escoge los días.'); return; }
+    if (!S.isComplete(c)) { toast(af.kind ? `${FULL_TEXT} esos días.` : 'Escoge los días.'); return; }
+    if (skipped.length && c.kind !== 'dates') toast(`${FULL_TEXT} ${daysText(skipped)}; esos días no se incluyen.`);
     el.disabled = true;
     try {
       if (af.editId) await store.adminUpdate(af.editId, c);
@@ -596,8 +653,8 @@ const actions = {
   'copy-prev': async (d) => {
     const month = d.m;
     const list = monthList(month);
-    const items = monthList(S.addMonths(month, -1)).map(c => S.copyToMonth(c, month))
-      .filter(c => S.isComplete(c) && !list.some(x => S.sameCommitment(x, c)));
+    const items = fitAll(monthList(S.addMonths(month, -1)).map(c => S.copyToMonth(c, month))
+      .filter(c => !list.some(x => S.sameCommitment(x, c))), list);
     if (!confirm(`¿Copiar ${items.length} inscripciones a ${S.monthLabel(month)}?`)) return;
     try {
       for (const c of items) await store.add(c, { asAdmin: true });
@@ -617,6 +674,7 @@ app.addEventListener('input', (e) => {
   const [obj, field] = bind.split('.');
   const s = obj === 'af' ? af : wiz;
   s[field] = field === 'hour' ? Number(e.target.value) : e.target.value;
+  if (field === 'hour') render();   // which days are full depends on the hour
 });
 app.addEventListener('change', (e) => {
   if (e.target.dataset.actChange === 'msg-day') go(`#/admin?m=${e.target.dataset.m}&d=${e.target.value}`);

@@ -12,6 +12,9 @@ export const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'ju
   'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 export const MATUTINO = [5, 6];
+// Every hour outside the Matutino takes at most this many people per day; the Matutino has no limit.
+export const MAX_PER_HOUR = 3;
+export const isLimited = (h) => !MATUTINO.includes(h);
 export const GROUPS = [
   { id: 'matutino', title: '🌅 Matutino', hours: [5, 6] },
   { id: 'manana', title: '☀️ Mañana', hours: [7, 8, 9, 10, 11] },
@@ -92,7 +95,7 @@ export function listLabel(items) {
   if (items.length <= 1) return items.join('');
   return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
 }
-export function patternLabel(c) {
+function basePattern(c) {
   if (c.kind === 'daily') return 'todos los días';
   if (c.kind === 'weekdays') return 'de lunes a viernes';
   if (c.kind === 'weekly') {
@@ -103,18 +106,28 @@ export function patternLabel(c) {
   const dates = [...(c.dates || [])].sort((a, b) => a - b);
   return dates.length === 1 ? `el día ${dates[0]}` : `los días ${listLabel(dates.map(String))}`;
 }
+// "todos los días (menos el 3 y el 10)" when some days were already full.
+export function patternLabel(c) {
+  const base = basePattern(c);
+  const skip = c.kind === 'dates' ? [] : [...(c.skip || [])].sort((a, b) => a - b);
+  if (!skip.length) return base;
+  return `${base} (menos ${skip.length === 1 ? 'el día' : 'los días'} ${listLabel(skip.map(String))})`;
+}
 export function sentence(c) {
   return `${c.name}, ${patternLabel(c)} de ${hourLabel(c.hour)}`;
 }
-// A commitment is usable when its pattern actually picks at least one day.
+// A commitment is usable when its pattern actually picks at least one day
+// (and, once full days are skipped, at least one day is left).
 export function isComplete(c) {
-  if (c.kind === 'weekly') return (c.weekdays || []).length > 0;
-  if (c.kind === 'dates') return (c.dates || []).length > 0;
-  return c.kind === 'daily' || c.kind === 'weekdays';
+  let picked = c.kind === 'daily' || c.kind === 'weekdays';
+  if (c.kind === 'weekly') picked = (c.weekdays || []).length > 0;
+  if (c.kind === 'dates') picked = (c.dates || []).length > 0;
+  return picked && (!isValidMonth(c.month) || coveredDays({ ...c, cancelled: false }, c.month).length > 0);
 }
 
 export function coversDay(c, key, day) {
   if (c.cancelled || c.month !== key) return false;
+  if (c.kind !== 'dates' && (c.skip || []).includes(day)) return false;
   const wd = weekdayOf(key, day);
   switch (c.kind) {
     case 'daily': return true;
@@ -145,13 +158,37 @@ export function peopleAt(list, key, day, hour) {
 export function dayHours(list, key, day) {
   return Array.from({ length: 24 }, (_, h) => peopleAt(list, key, day, h));
 }
-// How full one day is: hours with at least one person, and whether Matutino is covered.
+// How full one day is: hours with at least one person, whether the Matutino is covered,
+// and whether every limited hour already has MAX_PER_HOUR people (the day is "full").
 export function dayCoverage(list, key, day) {
   const hours = dayHours(list, key, day);
   return {
     covered: hours.filter(n => n.length).length,
     matutino: MATUTINO.every(h => hours[h].length > 0),
+    full: hours.every((n, h) => !isLimited(h) || n.length >= MAX_PER_HOUR),
   };
+}
+export function isFull(list, key, day, hour) {
+  return isLimited(hour) && peopleAt(list, key, day, hour).length >= MAX_PER_HOUR;
+}
+// Days of the month (from fromDay on) where this hour has no room left.
+export function fullDays(list, key, hour, fromDay = 1) {
+  const days = [];
+  if (!isLimited(hour)) return days;
+  for (let d = fromDay; d <= daysInMonth(key); d++) if (isFull(list, key, d, hour)) days.push(d);
+  return days;
+}
+// Fit a new sign-up around full days: specific dates lose the full ones, a pattern skips them.
+// Returns the adjusted sign-up and the days that were left out.
+export function fitToRoom(c, list) {
+  const full = new Set(fullDays(list, c.month, c.hour));
+  if (c.kind === 'dates') {
+    const dates = (c.dates || []).filter(d => !full.has(d));
+    return { c: { ...c, dates, skip: [] }, skipped: (c.dates || []).filter(d => full.has(d)) };
+  }
+  const base = { ...c, skip: [] };
+  const skipped = coveredDays(base, c.month).filter(d => full.has(d));
+  return { c: { ...c, skip: skipped }, skipped };
 }
 // Distinct people who signed up for an hour anywhere in the month.
 export function namesForHour(list, key, hour) {
@@ -168,7 +205,7 @@ export function sameCommitment(a, b) {
 // Copy a commitment into another month. Specific dates that don't exist there are dropped.
 export function copyToMonth(c, key) {
   const dates = (c.dates || []).filter(d => d <= daysInMonth(key));
-  return { name: c.name, hour: c.hour, month: key, kind: c.kind, weekdays: [...(c.weekdays || [])], dates };
+  return { name: c.name, hour: c.hour, month: key, kind: c.kind, weekdays: [...(c.weekdays || [])], dates, skip: [] };
 }
 
 // ─────────────── messages and files ───────────────

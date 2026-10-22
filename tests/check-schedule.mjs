@@ -68,8 +68,8 @@ test('pairings and coverage', () => {
   ];
   assert.deepEqual(S.peopleAt(list, '2026-11', 3, 5), ['José Pérez', 'María González']);
   assert.deepEqual(S.peopleAt(list, '2026-11', 4, 5), ['María González']);
-  assert.deepEqual(S.dayCoverage(list, '2026-11', 3), { covered: 2, matutino: true });
-  assert.deepEqual(S.dayCoverage(list, '2026-11', 1), { covered: 1, matutino: false }); // Sunday, no Ana
+  assert.deepEqual(S.dayCoverage(list, '2026-11', 3), { covered: 2, matutino: true, full: false });
+  assert.deepEqual(S.dayCoverage(list, '2026-11', 1), { covered: 1, matutino: false, full: false }); // Sunday, no Ana
   assert.deepEqual(S.namesForHour(list, '2026-11', 5), ['José Pérez', 'María González']);
 });
 
@@ -77,7 +77,32 @@ test('duplicates and copying to the next month', () => {
   assert.ok(S.sameCommitment(c({ kind: 'weekly', weekdays: [1, 3] }), c({ name: ' maría gonzález', kind: 'weekly', weekdays: [3, 1] })));
   assert.ok(!S.sameCommitment(c(), c({ hour: 6 })));
   const copied = S.copyToMonth(c({ month: '2027-01', kind: 'dates', dates: [15, 30, 31] }), '2027-02');
-  assert.deepEqual(copied, { name: 'María González', hour: 5, month: '2027-02', kind: 'dates', weekdays: [], dates: [15] });
+  assert.deepEqual(copied, { name: 'María González', hour: 5, month: '2027-02', kind: 'dates', weekdays: [], dates: [15], skip: [] });
+});
+
+test('3 people per hour, except the Matutino', () => {
+  const three = ['Ana', 'Beto', 'Caro'].map(name => c({ name, hour: 21, kind: 'weekly', weekdays: [2] })); // Tuesdays 9 pm
+  assert.ok(S.isFull(three, '2026-11', 3, 21));
+  assert.ok(!S.isFull(three, '2026-11', 4, 21));
+  assert.deepEqual(S.fullDays(three, '2026-11', 21), [3, 10, 17, 24]);
+  assert.deepEqual(S.fullDays(three, '2026-11', 21, 11), [17, 24]);
+  // the Matutino never fills up
+  const many = ['A', 'B', 'C', 'D', 'E'].map(name => c({ name }));
+  assert.ok(!S.isFull(many, '2026-11', 3, 5));
+  assert.deepEqual(S.fullDays(many, '2026-11', 5), []);
+  // a daily sign-up skips the full Tuesdays and says so
+  const fit = S.fitToRoom(c({ name: 'Dani', hour: 21 }), three);
+  assert.deepEqual(fit.skipped, [3, 10, 17, 24]);
+  assert.equal(S.coveredDays(fit.c, '2026-11').length, 26);
+  assert.equal(S.patternLabel(fit.c), 'todos los días (menos los días 3, 10, 17 y 24)');
+  // specific dates just lose the full ones; a pattern with only full days is not usable
+  assert.deepEqual(S.fitToRoom(c({ hour: 21, kind: 'dates', dates: [3, 4] }), three).c.dates, [4]);
+  assert.ok(!S.isComplete(S.fitToRoom(c({ hour: 21, kind: 'weekly', weekdays: [2] }), three).c));
+  // a day is full when all 22 limited hours have 3 people
+  const allFull = [];
+  for (let h = 0; h < 24; h++) if (S.isLimited(h)) for (const name of ['A', 'B', 'C']) allFull.push(c({ name, hour: h }));
+  assert.ok(S.dayCoverage(allFull, '2026-11', 8).full);
+  assert.ok(!S.dayCoverage(allFull.slice(1), '2026-11', 8).full);
 });
 
 test('WhatsApp messages and calendar file', () => {

@@ -23,6 +23,7 @@ function clean(c) {
     kind: c.kind,
     weekdays: c.kind === 'weekly' ? [...c.weekdays].map(Number) : [],
     dates: c.kind === 'dates' ? [...c.dates].map(Number) : [],
+    skip: c.kind === 'dates' ? [] : [...(c.skip || [])].map(Number),
   };
 }
 
@@ -123,6 +124,8 @@ async function cloudBackend() {
   };
 }
 
+// "?demo" in the address runs demo mode even when Firebase is set (safe testing on the live site).
 export async function openStore() {
-  return FIREBASE_CONFIG ? cloudBackend() : demoBackend();
+  const demo = new URLSearchParams(location.search).has('demo');
+  return FIREBASE_CONFIG && !demo ? cloudBackend() : demoBackend();
 }

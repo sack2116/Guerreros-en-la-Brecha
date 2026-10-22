@@ -2,6 +2,8 @@
 // Deploy: npx firebase-tools deploy --only firestore:rules
 //
 // Everyone gets an invisible anonymous sign-in, so nobody types a password.
+// The 3-people-per-hour limit is applied by the site when someone signs up ("skip" holds the
+// days that were already full); the rules only check the shape of each sign-up.
 // The admin user and PIN live in the private document secret/admin ({ user: "admin", pin: "..." },
 // pin uppercase), which nobody can read. Change the PIN in the Firebase console any time;
 // to also sign out every admin phone, delete the "admins" collection.
@@ -14,7 +16,7 @@ service cloud.firestore {
     }
 
     function validCommitment(d) {
-      return d.keys().hasOnly(['name', 'hour', 'month', 'kind', 'weekdays', 'dates', 'owner', 'created', 'cancelled', 'addedBy'])
+      return d.keys().hasOnly(['name', 'hour', 'month', 'kind', 'weekdays', 'dates', 'skip', 'owner', 'created', 'cancelled', 'addedBy'])
         && d.keys().hasAll(['name', 'hour', 'month', 'kind', 'weekdays', 'dates', 'owner', 'created', 'cancelled'])
         && d.name is string && d.name.size() >= 2 && d.name.size() <= 60
         && d.hour is int && d.hour >= 0 && d.hour <= 23
@@ -22,6 +24,7 @@ service cloud.firestore {
         && d.kind in ['daily', 'weekdays', 'weekly', 'dates']
         && d.weekdays is list && d.weekdays.size() <= 7
         && d.dates is list && d.dates.size() <= 31
+        && (!('skip' in d) || (d.skip is list && d.skip.size() <= 31))
         && d.cancelled is bool;
     }
 
