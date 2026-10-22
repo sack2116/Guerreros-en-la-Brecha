@@ -2,7 +2,7 @@
 // Everything is rendered from plain state into #app; clicks are handled by data-act buttons.
 import * as S from './schedule.js';
 import { openStore, friendlyError } from './store.js';
-import { SITE_NAME, SITE_TAGLINE, OPEN_DAYS_BEFORE, COORDINATOR_WHATSAPP } from './config.js';
+import { SITE_NAME, SITE_TAGLINE, OPEN_DAYS_BEFORE, OPENED_EARLY, COORDINATOR_WHATSAPP } from './config.js';
 
 const app = document.getElementById('app');
 const nav = document.getElementById('nav');
@@ -30,7 +30,7 @@ function today() {
   }
   return new Date();
 }
-const win = () => S.signupWindow(today(), OPEN_DAYS_BEFORE);
+const win = () => S.signupWindow(today(), OPEN_DAYS_BEFORE, OPENED_EARLY);
 
 // ─────────────── live data per month ───────────────
 const cache = new Map();
@@ -132,8 +132,8 @@ function viewHome() {
   const name = safeGet(NAME_KEY);
   const repeat = repeatCandidates();
   const nextStatus = w.nextOpen
-    ? `<p class="status open">✅ Ya puedes apuntarte para <b>${S.monthLabel(w.next)}</b>.</p>`
-    : `<p class="status">📅 Las inscripciones para <b>${S.monthLabel(w.next)}</b> abren el <b>${S.shortDate(w.opensOn)}</b>. Mientras tanto puedes apuntarte en ${S.monthLabel(w.current)}.</p>`;
+    ? `<p class="status open">✅ Ya puedes escoger tu hora de oración para <b>${S.monthLabel(w.next)}</b>.</p>`
+    : `<p class="status">📅 Podrás escoger tu hora de oración para <b>${S.monthLabel(w.next)}</b> desde el <b>${S.shortDate(w.opensOn)}</b>. Mientras tanto puedes apuntarte en ${S.monthLabel(w.current)}.</p>`;
   return `
     <figure class="banner">
       <img src="images/brecha.jpg" width="452" height="565" alt="¿Quién se pondrá en la brecha? Un hombre arrodillado orando en la brecha de un muro en llamas. Ezequiel 22:30">    </figure>
@@ -500,7 +500,7 @@ function viewAdmin(q) {
       </div>
 
       <section class="card">
-        <h2>${af.editId ? '✏️ Cambiar inscripción' : '➕ Apuntar a alguien'}</h2>
+        <h2>${af.editId ? '✏️ Cambiar turno' : '➕ Apuntar a alguien'}</h2>
         <label>Nombre completo<input class="big-input" data-bind="af.name" value="${esc(af.name)}" maxlength="60"></label>
         <label>Hora<select class="big-input" data-bind="af.hour">${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${af.hour === h ? 'selected' : ''}>${S.MATUTINO.includes(h) ? '🌅 ' : ''}${S.hourLabel(h)}</option>`).join('')}</select></label>
         ${daysPicker(af, 'af', { allowPast: true, list: list.filter(c => c.id !== af.editId) })}
@@ -511,7 +511,7 @@ function viewAdmin(q) {
       </section>
 
       <section class="card">
-        <h2>📋 Inscritos (${list.length})</h2>
+        <h2>📋 Guerreros apuntados (${list.length})</h2>
         ${list.length ? '' : '<p class="muted">Nadie todavía este mes.</p>'}
         ${[...S.MATUTINO, ...Array.from({ length: 24 }, (_, h) => h).filter(h => !S.MATUTINO.includes(h))].map(h => {
           const items = list.filter(c => c.hour === h).sort((a, b) => a.name.localeCompare(b.name, 'es'));
@@ -522,7 +522,7 @@ function viewAdmin(q) {
               <div class="row"><button class="btn small" data-act="af-edit" data-id="${c.id}">Cambiar</button><button class="btn small danger" data-act="af-remove" data-id="${c.id}">Quitar</button></div>
             </div>`).join('')}`;
         }).join('')}
-        ${toCopy.length ? `<button class="btn gold" data-act="copy-prev" data-m="${month}">🔁 Copiar ${toCopy.length} inscripciones de ${S.monthLabel(prev)}</button>` : ''}
+        ${toCopy.length ? `<button class="btn gold" data-act="copy-prev" data-m="${month}">🔁 Copiar ${toCopy.length} turnos de ${S.monthLabel(prev)}</button>` : ''}
       </section>
 
       <section class="card">
@@ -666,10 +666,10 @@ const actions = {
     const list = monthList(month);
     const items = fitAll(monthList(S.addMonths(month, -1)).map(c => S.copyToMonth(c, month))
       .filter(c => !list.some(x => S.sameCommitment(x, c))), list);
-    if (!confirm(`¿Copiar ${items.length} inscripciones a ${S.monthLabel(month)}?`)) return;
+    if (!confirm(`¿Copiar ${items.length} turnos a ${S.monthLabel(month)}?`)) return;
     try {
       for (const c of items) await store.add(c, { asAdmin: true });
-      toast(`✅ Copiadas ${items.length} inscripciones.`);
+      toast(`✅ Copiados ${items.length} turnos.`);
     } catch (e) { toast(friendlyError(e)); }
   },
 };

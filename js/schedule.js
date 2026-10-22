@@ -56,13 +56,14 @@ export const isValidMonth = (key) => /^20\d{2}-(0[1-9]|1[0-2])$/.test(key || '')
 
 // Sign-up for a month opens OPEN_DAYS_BEFORE days before it starts.
 // The current month is always open, so gaps can be filled at any time.
-export function signupWindow(today, openDaysBefore = 7) {
+// openedEarly lists months ('YYYY-MM') the coordinator opened before their usual day.
+export function signupWindow(today, openDaysBefore = 7, openedEarly = []) {
   const current = keyOf(today);
   const next = addMonths(current, 1);
   const { y, m } = parseMonth(next);
   const opensOn = new Date(y, m, 1 - openDaysBefore);
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return { current, next, nextOpen: start >= opensOn, opensOn };
+  return { current, next, nextOpen: start >= opensOn || openedEarly.includes(next), opensOn };
 }
 export function shortDate(date) {
   return `${DIAS[date.getDay()]} ${date.getDate()} de ${MESES[date.getMonth()]}`;

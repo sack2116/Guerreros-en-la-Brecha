@@ -21,6 +21,8 @@ export const SITE_TAGLINE = 'Orando en todo tiempo · 24/7';
 
 // Sign-up for next month opens this many days before it starts.
 export const OPEN_DAYS_BEFORE = 7;
+// Months opened early by hand, before their usual day (e.g. '2026-11').
+export const OPENED_EARLY = ['2026-11'];
 
 // Coordinator's WhatsApp number with country code and no symbols (e.g. '15551234567'),
 // shown as a "¿Necesitas ayuda?" button. Leave '' to hide the button.

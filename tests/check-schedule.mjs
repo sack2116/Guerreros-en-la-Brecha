@@ -24,6 +24,9 @@ test('sign-up window opens 7 days before the month', () => {
   assert.equal(S.shortDate(w1.opensOn), 'domingo 25 de octubre');
   assert.equal(S.signupWindow(new Date(2026, 9, 25, 0, 1)).nextOpen, true);
   assert.equal(S.signupWindow(new Date(2026, 11, 28)).next, '2027-01');
+  // a month opened early by hand
+  assert.equal(S.signupWindow(new Date(2026, 9, 22), 7, ['2026-11']).nextOpen, true);
+  assert.equal(S.signupWindow(new Date(2026, 10, 2), 7, ['2026-11']).nextOpen, false); // December keeps its usual day
 });
 
 test('hour labels read naturally in Spanish', () => {
