@@ -3,7 +3,14 @@
 // FIREBASE: the web app config from the Firebase console (Project settings > Your apps).
 // These values are public by design; the Firestore rules (firestore.rules) protect the data.
 // Set it to null to run in "demo mode", where sign-ups are saved only in this browser.
-export const FIREBASE_CONFIG = null;
+export const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyDxuX8oArrBpXTy5p-GReNSDQbvZly6B2k',
+  authDomain: 'guerreros-en-la-brecha.firebaseapp.com',
+  projectId: 'guerreros-en-la-brecha',
+  storageBucket: 'guerreros-en-la-brecha.firebasestorage.app',
+  messagingSenderId: '1018993767174',
+  appId: '1:1018993767174:web:adc017218a8aa9ad63e487',
+};
 
 // Only for demo mode (local testing). The real admin user and PIN live in the private
 // Firestore document secret/admin and never appear in this code.
