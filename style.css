@@ -38,12 +38,12 @@ small { font-weight: 400; color: var(--muted); }
   display: flex; align-items: center; justify-content: space-between; gap: .5rem;
   background: var(--navy); color: #fff; padding: .5rem 1rem;
 }
-.brand { display: flex; align-items: center; gap: .6rem; color: #fff; text-decoration: none; min-width: 0; }
-.brand img { flex: none; width: 46px; height: 46px; border-radius: 50%; background: #fff; padding: 2px; }
-.brand span { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
-.brand small { font-size: .72rem; color: #e9eefc; letter-spacing: .02em; }
+.brand { display: flex; align-items: center; justify-content: center; gap: .6rem; color: #fff; text-decoration: none; min-width: 0; flex: 1; padding: 0 2.9rem; }
+.brand img { flex: none; width: 42px; height: 42px; border-radius: 50%; background: #fff; padding: 2px; }
+.brand span { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.15; min-width: 0; }
+.brand small { font-size: .66rem; color: #e9eefc; white-space: nowrap; }
 .brand b { font-size: 1.15rem; }
-.btn.size { background: transparent; color: #fff; border: 2px solid #fff6; min-height: 2.6rem; width: auto; padding: 0 .8rem; margin: 0; }
+.btn.size { position: absolute; right: .6rem; padding: 0 .55rem !important; top: 50%; transform: translateY(-50%); background: transparent; color: #fff; border: 2px solid #fff6; min-height: 2.6rem; width: auto; padding: 0 .8rem; margin: 0; }
 .btn.size span { font-size: 1.4em; }
 .demo { margin: 0; background: #fff3c4; color: #6b4e00; text-align: center; font-size: .9rem; padding: .3rem; }
 main { max-width: 40rem; margin: 0 auto; padding: .5rem 1rem 1rem; }
@@ -98,25 +98,11 @@ main { max-width: 40rem; margin: 0 auto; padding: .5rem 1rem 1rem; }
 .hero h1 { font-family: Cinzel, Georgia, serif; font-size: 1.9rem; margin: 0; letter-spacing: .02em; }
 .tagline { margin: .2rem 0; font-size: 1.25rem; font-weight: 600; color: var(--gold); }
 
-/* banner art */
-.art { position: relative; margin: .4rem -1rem 0; overflow: hidden; background: #1c0c06; height: clamp(16rem, 78vw, 24rem); }
-@media (min-width: 46rem) { .art { margin: .8rem 0 0; border-radius: 16px; } }
-.art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.art-title {
-  position: absolute; top: 4%; left: 0; right: 0; margin: 0;
-  display: flex; flex-direction: column; align-items: center; line-height: .95;
-  font-family: Cinzel, Georgia, serif; font-weight: 900; text-transform: uppercase; color: #ffe29a;
-  text-shadow: 0 0 10px #ff7a18, 0 0 26px #b8360e, 0 2px 2px #000;
-  font-size: clamp(1.4rem, 7.2vw, 2.4rem);
-}
-.art-title .small { font-size: .62em; margin: .15em 0; }
-.art-title .big { font-size: 1.55em; }
-.flick { transform-box: fill-box; transform-origin: 50% 100%; animation: flick 1.6s ease-in-out infinite alternate; }
-@keyframes flick { 0% { transform: scale(1, 1); opacity: .95; } 50% { transform: scale(.9, 1.18); opacity: 1; } 100% { transform: scale(1.06, .88); opacity: .85; } }
-.flames use { transform-box: fill-box; }
-.ember { animation: rise 4.2s linear infinite; }
-@keyframes rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-120px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .flick, .ember { animation: none; } }
+/* banner artwork */
+.banner { position: relative; margin: .4rem -1rem 0; background: #1c0c06; }
+.banner img { display: block; width: 100%; height: auto; }
+.banner figcaption { position: absolute; right: .5rem; bottom: .35rem; font-size: .7rem; color: #f3e2c4; text-shadow: 0 1px 2px #000; opacity: .85; }
+@media (min-width: 34rem) { .banner { max-width: 30rem; margin: .8rem auto 0; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px #0003; } }
 
 /* Bible verses */
 .verses { margin: .6rem 0 1rem; }

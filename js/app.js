@@ -2,7 +2,6 @@
 // Everything is rendered from plain state into #app; clicks are handled by data-act buttons.
 import * as S from './schedule.js';
 import { openStore, friendlyError } from './store.js';
-import { breachArt } from './art.js';
 import { SITE_NAME, SITE_TAGLINE, OPEN_DAYS_BEFORE, COORDINATOR_WHATSAPP } from './config.js';
 
 const app = document.getElementById('app');
@@ -136,7 +135,10 @@ function viewHome() {
     ? `<p class="status open">✅ Ya puedes apuntarte para <b>${S.monthLabel(w.next)}</b>.</p>`
     : `<p class="status">📅 Las inscripciones para <b>${S.monthLabel(w.next)}</b> abren el <b>${S.shortDate(w.opensOn)}</b>. Mientras tanto puedes apuntarte en ${S.monthLabel(w.current)}.</p>`;
   return `
-    ${breachArt()}
+    <figure class="banner">
+      <img src="images/brecha.jpg" width="452" height="565" alt="¿Quién se pondrá en la brecha? Un hombre arrodillado orando en la brecha de un muro en llamas. Ezequiel 22:30">
+      <figcaption>Arte: Luz Navy</figcaption>
+    </figure>
     <section class="hero">
       <h1>${esc(SITE_NAME)}</h1>
       <p class="tagline">${esc(SITE_TAGLINE)}</p>
