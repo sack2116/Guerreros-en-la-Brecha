@@ -101,7 +101,6 @@ main { max-width: 40rem; margin: 0 auto; padding: .5rem 1rem 1rem; }
 /* banner artwork */
 .banner { position: relative; margin: .4rem -1rem 0; background: #1c0c06; }
 .banner img { display: block; width: 100%; height: auto; }
-.banner figcaption { position: absolute; right: .5rem; bottom: .35rem; font-size: .7rem; color: #f3e2c4; text-shadow: 0 1px 2px #000; opacity: .85; }
 @media (min-width: 34rem) { .banner { max-width: 30rem; margin: .8rem auto 0; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px #0003; } }
 
 /* Bible verses */
