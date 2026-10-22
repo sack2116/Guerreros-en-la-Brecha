@@ -3,17 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Guerreros en la Brecha</title>
-  <meta name="description" content="Orando en todo tiempo · 24/7. Escoge tu hora de oración en el calendario del mes.">
+  <title>Guerreros en la Brecha · Iglesia El Refugio</title>
+  <meta name="description" content="Orando en todo tiempo · 24/7. Escoge tu hora de oración en el calendario del mes. Ministerio de Dios Jesús Faro de Luz — Iglesia El Refugio.">
   <meta property="og:title" content="Guerreros en la Brecha — Orando en todo tiempo 24/7">
-  <meta property="og:description" content="Escoge tu hora de oración. ¡Necesitamos especialmente el Matutino, de 5 a 7 de la mañana!">
+  <meta property="og:description" content="Iglesia El Refugio. Escoge tu hora de oración. ¡Necesitamos especialmente el Matutino, de 5 a 7 de la mañana!">
+  <meta property="og:image" content="https://sack2116.github.io/Guerreros-en-la-Brecha/images/logo.png">
   <meta name="theme-color" content="#1d2a4d">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="apple-touch-icon" href="images/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="#/">🔥 Guerreros en la Brecha</a>
+    <a class="brand" href="#/">
+      <img src="images/logo.png" alt="Logo de la Iglesia El Refugio" width="46" height="46">
+      <span><small>Ministerio de Dios Jesús Faro de Luz</small><b>Iglesia El Refugio</b></span>
+    </a>
     <button id="size" class="btn size" aria-label="Cambiar el tamaño de la letra">A<span>A</span></button>
   </header>
   <p id="demo" class="demo" hidden>Modo de prueba: las inscripciones se guardan solo en este navegador.</p>
@@ -23,7 +31,11 @@
     <a href="#/calendario" data-path="calendario"><span>📅</span>Calendario</a>
     <a href="#/mis-horas" data-path="mis-horas"><span>⭐</span>Mis horas</a>
   </nav>
-  <footer class="foot"><a href="#/admin">Coordinador</a></footer>
+  <footer class="foot">
+    <p>Ministerio de Dios Jesús Faro de Luz — Iglesia El Refugio</p>
+    <p class="small">Textos bíblicos: Reina-Valera 1960 © Sociedades Bíblicas en América Latina, 1960. Usado con permiso.</p>
+    <a href="#/admin">Coordinador</a>
+  </footer>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="js/app.js"></script>
 </body>
