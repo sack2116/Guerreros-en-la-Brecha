@@ -1,0 +1,8 @@
+{
+  "name": "guerreros-en-la-brecha",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/check-schedule.mjs"
+  }
+}

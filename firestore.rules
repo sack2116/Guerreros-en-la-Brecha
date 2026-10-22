@@ -1,0 +1,60 @@
+// Firestore security rules for Guerreros en la Brecha.
+// Deploy: npx firebase-tools deploy --only firestore:rules
+//
+// Everyone gets an invisible anonymous sign-in, so nobody types a password.
+// The admin user and PIN live in the private document secret/admin ({ user: "admin", pin: "..." },
+// pin uppercase), which nobody can read. Change the PIN in the Firebase console any time;
+// to also sign out every admin phone, delete the "admins" collection.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function validCommitment(d) {
+      return d.keys().hasOnly(['name', 'hour', 'month', 'kind', 'weekdays', 'dates', 'owner', 'created', 'cancelled', 'addedBy'])
+        && d.keys().hasAll(['name', 'hour', 'month', 'kind', 'weekdays', 'dates', 'owner', 'created', 'cancelled'])
+        && d.name is string && d.name.size() >= 2 && d.name.size() <= 60
+        && d.hour is int && d.hour >= 0 && d.hour <= 23
+        && d.month is string && d.month.matches('^20[0-9]{2}-(0[1-9]|1[0-2])$')
+        && d.kind in ['daily', 'weekdays', 'weekly', 'dates']
+        && d.weekdays is list && d.weekdays.size() <= 7
+        && d.dates is list && d.dates.size() <= 31
+        && d.cancelled is bool;
+    }
+
+    // Prayer hours: anyone can see the calendar; each phone can add hours and cancel its own.
+    match /commitments/{id} {
+      allow read: if true;
+      allow create: if signedIn() && validCommitment(request.resource.data)
+        && request.resource.data.cancelled == false
+        && request.resource.data.created == request.time
+        && request.resource.data.owner == request.auth.uid
+        && (!('addedBy' in request.resource.data) || isAdmin());
+      allow update: if validCommitment(request.resource.data)
+        && request.resource.data.owner == resource.data.owner
+        && request.resource.data.created == resource.data.created
+        && (isAdmin()
+          || (signedIn() && resource.data.owner == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cancelled'])
+            && request.resource.data.cancelled == true));
+      allow delete: if isAdmin();
+    }
+
+    // A phone becomes an admin by writing its own admins/{uid} with the right user and PIN.
+    match /admins/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['user', 'pin', 'since'])
+        && request.resource.data.user == get(/databases/$(database)/documents/secret/admin).data.user
+        && request.resource.data.pin == get(/databases/$(database)/documents/secret/admin).data.pin;
+    }
+
+    // Everything else (including secret/admin) is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

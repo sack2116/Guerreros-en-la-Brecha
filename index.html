@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guerreros en la Brecha</title>
+  <meta name="description" content="Orando en todo tiempo · 24/7. Escoge tu hora de oración en el calendario del mes.">
+  <meta property="og:title" content="Guerreros en la Brecha — Orando en todo tiempo 24/7">
+  <meta property="og:description" content="Escoge tu hora de oración. ¡Necesitamos especialmente el Matutino, de 5 a 7 de la mañana!">
+  <meta name="theme-color" content="#1d2a4d">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="#/">🔥 Guerreros en la Brecha</a>
+    <button id="size" class="btn size" aria-label="Cambiar el tamaño de la letra">A<span>A</span></button>
+  </header>
+  <p id="demo" class="demo" hidden>Modo de prueba: las inscripciones se guardan solo en este navegador.</p>
+  <main id="app"><p class="big-text">Cargando…</p></main>
+  <nav id="nav" class="tabs" aria-label="Menú">
+    <a href="#/" data-path=""><span>🏠</span>Inicio</a>
+    <a href="#/calendario" data-path="calendario"><span>📅</span>Calendario</a>
+    <a href="#/mis-horas" data-path="mis-horas"><span>⭐</span>Mis horas</a>
+  </nav>
+  <footer class="foot"><a href="#/admin">Coordinador</a></footer>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
