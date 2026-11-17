@@ -49,13 +49,13 @@ small { font-weight: 400; color: var(--muted); }
 main { max-width: 40rem; margin: 0 auto; padding: .5rem 1rem 1rem; }
 .tabs {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(4, 1fr);
   background: #fff; border-top: 2px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .tabs a {
   display: flex; flex-direction: column; align-items: center;
-  padding: .45rem 0 .55rem; text-decoration: none; color: var(--muted); font-size: 1rem; font-weight: 600;
+  padding: .45rem 0 .55rem; text-decoration: none; color: var(--muted); font-size: .9rem; font-weight: 600;
 }
 .tabs a span { font-size: 1.5rem; line-height: 1.2; }
 .tabs a.active { color: var(--navy); background: var(--gold-soft); }
@@ -63,7 +63,6 @@ main { max-width: 40rem; margin: 0 auto; padding: .5rem 1rem 1rem; }
 .foot p { margin: .2rem 0; }
 .foot .small { font-size: .75rem; }
 .foot a { color: var(--muted); }
-.foot .btn.coord { display: inline-flex; width: auto; min-height: 3rem; margin: .8rem auto 0; padding: .5rem 1.4rem; background: var(--navy); border-color: var(--navy); color: #fff; font-size: 1.05rem; }
 .toast {
   position: fixed; left: 1rem; right: 1rem; bottom: 6rem; z-index: 10;
   max-width: 34rem; margin: 0 auto;
